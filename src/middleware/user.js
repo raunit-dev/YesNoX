@@ -1,5 +1,5 @@
 const {expressjwt: jwt} = require("express-jwt");
-const dotenv = require(dotenv);
+const dotenv = require('dotenv');
 dotenv.config({ path: '/daytwo/.env' })
 
 const verifyUserToken = jwt({
@@ -7,4 +7,4 @@ const verifyUserToken = jwt({
     algorithms: ["HS256"],
 })
 
-module.exports = verifyUserToken;
+module.exports = { verifyUserToken };

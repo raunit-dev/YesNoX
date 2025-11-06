@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { loadUsers, saveUsers, hashPassword, loadMarket } = require('../../util');
+const { loadUsers, saveUsers, hashPassword, loadMarket } = require('../util');
 const jwt = require('jsonwebtoken');
 const { verifyAdminToken } = require('../middleware/admin');
 

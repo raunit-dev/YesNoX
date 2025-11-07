@@ -1,15 +1,27 @@
-const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
+import crypto from 'crypto';
+import { PrismaClient, User, Admin, Market, MarketBalance, Prisma } from './generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
 // Hash password utility
-function hashPassword(password) {
+function hashPassword(password: string) {
     return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// User functions
-async function loadUsers() {
+type UserWithBalances = Prisma.UserGetPayload<{
+    include: { market_balances: true }
+}>;
+
+type MarketWithRelations = Prisma.MarketGetPayload<{
+    include: { admin: true, market_balances: true }
+}>;
+
+type MarketWithBalances = Prisma.MarketGetPayload<{
+    include: { market_balances: true }
+}>
+
+//returns list of all the users
+async function loadUsers(): Promise<UserWithBalances[]> {
     try {
         return await prisma.user.findMany({
             include: {
@@ -22,7 +34,8 @@ async function loadUsers() {
     }
 }
 
-async function findUserByUsername(username) {
+//returns one particular user
+async function findUserByUsername(username: string): Promise<UserWithBalances | null> {
     try {
         return await prisma.user.findUnique({
             where: { username },
@@ -36,7 +49,7 @@ async function findUserByUsername(username) {
     }
 }
 
-async function createUser(userData) {
+async function createUser(userData: Prisma.UserCreateInput): Promise<User> {
     try {
         return await prisma.user.create({
             data: userData
@@ -47,7 +60,8 @@ async function createUser(userData) {
     }
 }
 
-async function updateUser(userId, userData) {
+//using prisma types lets goo
+async function updateUser(userId: number, userData: Prisma.UserUpdateInput): Promise<UserWithBalances> {
     try {
         return await prisma.user.update({
             where: { id: userId },
@@ -62,7 +76,7 @@ async function updateUser(userId, userData) {
     }
 }
 
-// Admin functions
+// loads the array of admins
 async function loadAdmin() {
     try {
         return await prisma.admin.findMany();
@@ -72,7 +86,7 @@ async function loadAdmin() {
     }
 }
 
-async function findAdminByUsername(username) {
+async function findAdminByUsername(username: string): Promise<Admin | null> {
     try {
         return await prisma.admin.findUnique({
             where: { username }
@@ -83,7 +97,7 @@ async function findAdminByUsername(username) {
     }
 }
 
-async function createAdmin(adminData) {
+async function createAdmin(adminData: Prisma.AdminCreateInput) {
     try {
         return await prisma.admin.create({
             data: adminData
@@ -95,7 +109,7 @@ async function createAdmin(adminData) {
 }
 
 // Market functions
-async function loadMarket() {
+async function loadMarket(): Promise<MarketWithRelations[]> {
     try {
         return await prisma.market.findMany({
             include: {
@@ -109,7 +123,7 @@ async function loadMarket() {
     }
 }
 
-async function findMarketById(marketId) {
+async function findMarketById(marketId: string): Promise<MarketWithBalances | null> {
     try {
         return await prisma.market.findUnique({
             where: { market_id: marketId },
@@ -123,7 +137,7 @@ async function findMarketById(marketId) {
     }
 }
 
-async function createMarket(marketData) {
+async function createMarket(marketData: Prisma.MarketCreateInput): Promise<Market> {
     try {
         return await prisma.market.create({
             data: marketData
@@ -134,7 +148,7 @@ async function createMarket(marketData) {
     }
 }
 
-async function updateMarket(marketId, marketData) {
+async function updateMarket(marketId: string, marketData: Prisma.MarketCreateInput): Promise<Market> {
     try {
         return await prisma.market.update({
             where: { market_id: marketId },
@@ -147,7 +161,7 @@ async function updateMarket(marketId, marketData) {
 }
 
 // MarketBalance functions
-async function findMarketBalance(userId, marketId) {
+async function findMarketBalance(userId: number, marketId: string): Promise<MarketBalance | null> {
     try {
         return await prisma.marketBalance.findUnique({
             where: {
@@ -163,7 +177,7 @@ async function findMarketBalance(userId, marketId) {
     }
 }
 
-async function upsertMarketBalance(userId, marketId, balanceData) {
+async function upsertMarketBalance(userId: number, marketId: string, balanceData: Partial<Pick<MarketBalance, 'outcome_a' | 'outcome_b'>>): Promise<MarketBalance> {
     try {
         return await prisma.marketBalance.upsert({
             where: {
@@ -185,7 +199,7 @@ async function upsertMarketBalance(userId, marketId, balanceData) {
     }
 }
 
-module.exports = {
+export {
     prisma,
     hashPassword,
     loadUsers,

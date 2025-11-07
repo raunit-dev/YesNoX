@@ -1,28 +1,22 @@
-const express = require('express');
-const router = express.Router();
-const {
-    prisma,
-    hashPassword,
-    findAdminByUsername,
-    createAdmin,
-    findMarketById,
-    createMarket,
-    updateMarket
-} = require('../util');
-const jwt = require('jsonwebtoken');
-const { verifyAdminToken } = require('../middleware/admin');
-const { v4: uuidv4 } = require('uuid');
-
-const dotenv = require('dotenv');
-dotenv.config({ path: '/daytwo/.env' })
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const router = express_1.default.Router();
+const { prisma, hashPassword, findAdminByUsername, createAdmin, findMarketById, createMarket, updateMarket } = require('../util');
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const admin_js_1 = require("../middleware/admin.js");
+const uuid_1 = require("uuid");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config({ path: '/daytwo/.env' });
 router.post('/signin', async (req, res) => {
     try {
         const { username, password } = req.body;
-        if (!username || !password) return res.status(400).json({ error: 'username and password required' });
-
+        if (!username || !password)
+            return res.status(400).json({ error: 'username and password required' });
         let admin = await findAdminByUsername(username);
-
         if (!admin) {
             // Create new admin if doesn't exist
             admin = await createAdmin({
@@ -32,42 +26,36 @@ router.post('/signin', async (req, res) => {
             });
             return res.status(201).json({ message: 'admin created and signed in', id: admin.id, username: admin.username });
         }
-
         if (admin.password !== hashPassword(password)) {
             return res.status(401).json({ error: 'invalid credentials' });
         }
-
-        const token = jwt.sign({ username, role: "admin" }, process.env.ADMIN_SECRET, { expiresIn: "2h" });
+        const token = jsonwebtoken_1.default.sign({ username, role: "admin" }, process.env.ADMIN_SECRET, { expiresIn: "2h" });
         res.json({ message: 'signin successful', token });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Admin signin error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-router.post('/market', verifyAdminToken, async (req, res) => {
+router.post('/market', admin_js_1.verifyAdminToken, async (req, res) => {
     try {
         const { settlement_deadline } = req.body;
         const username = req.auth.username;
-
         if (!settlement_deadline) {
             return res.status(400).json({ error: 'settlement_deadline is required' });
         }
-
         // Validate settlement_deadline is a valid future timestamp
         const deadlineTimestamp = new Date(settlement_deadline).getTime();
         if (isNaN(deadlineTimestamp) || deadlineTimestamp <= Date.now()) {
             return res.status(400).json({ error: 'settlement_deadline must be a valid future date' });
         }
-
         // Find the admin
         const admin = await findAdminByUsername(username);
         if (!admin) {
             return res.status(404).json({ error: 'Admin not found' });
         }
-
         const market = await createMarket({
-            market_id: uuidv4(),
+            market_id: (0, uuid_1.v4)(),
             settlement_deadline: new Date(settlement_deadline),
             is_settled: false,
             winning_outcome: null,
@@ -77,7 +65,6 @@ router.post('/market', verifyAdminToken, async (req, res) => {
             settled_at: null,
             admin_id: admin.id
         });
-
         res.status(201).json({
             message: 'Market created successfully',
             market: {
@@ -87,38 +74,33 @@ router.post('/market', verifyAdminToken, async (req, res) => {
                 total_collateral_locked: market.total_collateral_locked
             }
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Market creation error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-router.post('/result', verifyAdminToken, async (req, res) => {
+router.post('/result', admin_js_1.verifyAdminToken, async (req, res) => {
     try {
         const { winning_outcome, market_id } = req.body;
         if (!winning_outcome || !market_id) {
             return res.status(400).json({ error: 'winning_outcome and market_id are required' });
         }
-
         if (winning_outcome !== 'a' && winning_outcome !== 'b') {
             return res.status(400).json({ error: 'winning_outcome must be "a" or "b"' });
         }
-
         const market = await findMarketById(market_id);
         if (!market) {
             return res.status(404).json({ error: 'Market not found' });
         }
-
         if (market.is_settled) {
             return res.status(400).json({ error: 'Market is already settled' });
         }
-
         const updatedMarket = await updateMarket(market_id, {
             is_settled: true,
             winning_outcome: winning_outcome,
             settled_at: new Date()
         });
-
         res.json({
             message: 'Market settled successfully',
             market: {
@@ -128,10 +110,11 @@ router.post('/result', verifyAdminToken, async (req, res) => {
                 settled_at: updatedMarket.settled_at
             }
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Market settlement error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-module.exports = router;
+exports.default = router;
+//# sourceMappingURL=admin.js.map

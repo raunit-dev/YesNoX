@@ -1,10 +1,10 @@
-const express = require('express');
+import express, { Request, Response, NextFunction } from 'express';
 const app = express();
 const port = 3000;
 
 // Import routes
-const userRoutes = require('./routes/user');
-const adminRoutes = require('./routes/admin');
+import userRoutes from './routes/user.js';
+import adminRoutes from './routes/admin.js';
 
 // Middleware
 app.use(express.json());
@@ -14,17 +14,17 @@ app.use('/user', userRoutes);
 app.use('/admin', adminRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err: Error & { status?: number }, req: Request, res: Response, next: NextFunction) => {
     console.error('Error:', err);
     res.status(err.status || 500).json({
         error: err.message || 'Internal server error'
